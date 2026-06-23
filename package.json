@@ -1,0 +1,14 @@
+{
+  "name": "e-book-list-exporter",
+  "version": "0.6.6",
+  "private": true,
+  "description": "Kindle / DMM Books / ebookjapan の購入済み書籍を収集してCSV出力するChrome拡張",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node --check extension/background.js && node --check extension/content.js && node --check extension/core.js && node --check extension/default-rules.js && node --check extension/guide.js && node --check extension/manager.js && node --check extension/options.js && node --check extension/popup.js",
+    "package": "rm -rf dist && mkdir -p dist && cd extension && jar --create --file ../dist/e-book-list-exporter.zip ."
+  },
+  "devDependencies": {
+    "linkedom": "^0.18.12"
+  }
+}

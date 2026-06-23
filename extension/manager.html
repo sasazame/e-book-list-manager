@@ -1,0 +1,17 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="common.css"></head><body>
+<header class="topbar"><div><p class="eyebrow">Library</p><h1>収集済み書籍</h1></div><div class="actions"><button id="csv">CSV出力</button><button class="secondary" id="guide">取り込みガイド</button><button class="secondary" id="options">解析ルール</button><button class="danger" id="clear">全件削除</button></div></header>
+<main class="container manager-container">
+  <aside class="manager-sidebar card">
+    <div class="summary-card"><span class="muted">表示中</span><strong id="summary"></strong></div>
+    <label class="filter-field">検索<input type="search" id="query" placeholder="タイトル・著者・ID"></label>
+    <label class="filter-field">サービス<select id="source"><option value="">すべて</option></select></label>
+    <label class="filter-field">並び順<select id="sort"><option value="added-desc">本棚追加順（新しい順）</option><option value="added-asc">本棚追加順（古い順）</option><option value="updated-desc">最終確認が新しい順</option><option value="title-asc">タイトル昇順</option><option value="title-desc">タイトル降順</option><option value="volumes-desc">所持巻数が多い順</option><option value="volumes-asc">所持巻数が少ない順</option><option value="source-asc">サービス順</option></select></label>
+    <div class="status-filter-group"><span>ステータス</span><div id="status-filters" class="status-filter-tags"></div></div>
+    <div class="status" id="status"></div>
+  </aside>
+  <section class="manager-results">
+    <div class="table-wrap"><table class="book-table"><thead><tr><th>書籍</th><th>サービス</th><th>所持巻数</th><th>ステータス</th><th>ID</th><th>日時</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </section>
+</main>
+<button id="back-to-top" class="back-to-top" aria-label="ページトップへ戻る">↑</button>
+<script src="core.js"></script><script src="manager.js"></script></body></html>

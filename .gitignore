@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+dist/
+sample_html/
+*.zip
+*.Zone.Identifier
+*:Zone.Identifier
+.DS_Store
