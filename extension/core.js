@@ -198,6 +198,7 @@
         ? unique(incoming.statuses || [])
         : unique([...(previous.statuses || []), ...(incoming.statuses || [])]),
       manualStatuses: unique([...(previous.manualStatuses || []), ...(incoming.manualStatuses || [])]),
+      favorite: Boolean(previous.favorite || incoming.favorite),
       ownedVolumes: unique([...(previous.ownedVolumes || []), ...(incoming.ownedVolumes || [])]).map(Number).filter(Number.isFinite).sort((a, b) => a - b),
       title: preferIncomingBibliography ? incoming.title : (previous.title || incoming.title),
       authors: incoming.authors || previous.authors,
@@ -273,13 +274,14 @@
     { key: "authors", label: "著者" }, { key: "category", label: "カテゴリ" },
     { key: "statuses", label: "ステータス" }, { key: "ownedVolumes", label: "所持巻数" },
     { key: "detailUrl", label: "詳細URL" }, { key: "coverUrl", label: "表紙URL" },
-    { key: "pageUrl", label: "収集元URL" }, { key: "firstSeenAt", label: "本棚追加日時" },
+    { key: "favorite", label: "お気に入り" }, { key: "pageUrl", label: "収集元URL" }, { key: "firstSeenAt", label: "本棚追加日時" },
     { key: "lastSeenAt", label: "最終確認日時" }
   ];
   const csvEscape = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   function csvValue(record, key) {
     if (key === "ownedVolumes") return formatVolumes(record.ownedVolumes);
     if (key === "statuses") return recordStatuses(record).join("; ");
+    if (key === "favorite") return record.favorite ? "TRUE" : "";
     if (Array.isArray(record[key])) return record[key].join("; ");
     return record[key] ?? "";
   }

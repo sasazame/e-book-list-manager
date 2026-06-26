@@ -2,10 +2,10 @@
 <header class="topbar">
   <div><p class="eyebrow">Library</p><h1>収集済み書籍</h1></div>
   <div class="topbar-actions">
-    <button id="csv">CSV出力</button>
     <div class="menu-shell">
-      <button class="secondary menu-toggle" id="menu-toggle" aria-expanded="false" aria-haspopup="true">操作</button>
+      <button class="secondary menu-toggle" id="menu-toggle" aria-expanded="false" aria-haspopup="true">MENU</button>
       <div class="action-menu" id="action-menu" hidden>
+        <button class="menu-item" id="csv">CSV出力</button>
         <button class="menu-item" id="guide">取り込みガイド</button>
         <button class="menu-item" id="options">解析ルール</button>
         <button class="menu-item" id="show-exclusions">除外リスト</button>
@@ -18,16 +18,21 @@
   <aside class="manager-sidebar card">
     <div class="summary-card"><span class="muted">表示中</span><strong id="summary"></strong></div>
     <label class="filter-field">検索<input type="search" id="query" placeholder="タイトル・著者・ID"></label>
+    <label class="favorite-filter"><input type="checkbox" id="favorite-only">お気に入りのみ</label>
     <label class="filter-field">サービス<select id="source"><option value="">すべて</option></select></label>
     <button class="danger service-delete" id="delete-service" disabled>選択サービスを削除</button>
-    <label class="filter-field">並び順<select id="sort"><option value="added-desc">本棚追加順（新しい順）</option><option value="added-asc">本棚追加順（古い順）</option><option value="updated-desc">最終確認が新しい順</option><option value="title-asc">タイトル昇順</option><option value="title-desc">タイトル降順</option><option value="volumes-desc">所持巻数が多い順</option><option value="volumes-asc">所持巻数が少ない順</option><option value="source-asc">サービス順</option></select></label>
+    <label class="filter-field">並び順<select id="sort"><option value="added-asc" selected>本棚追加順（昇順）</option><option value="added-desc">本棚追加順（降順）</option><option value="updated-desc">最終確認が新しい順</option><option value="title-asc">タイトル昇順</option><option value="title-desc">タイトル降順</option><option value="volumes-desc">所持巻数が多い順</option><option value="volumes-asc">所持巻数が少ない順</option><option value="source-asc">サービス順</option></select></label>
     <div class="status-filter-group"><span>ステータス</span><div id="status-filters" class="status-filter-tags"></div></div>
     <div class="status" id="status"></div>
   </aside>
   <section class="manager-results">
-    <div class="table-wrap"><table class="book-table"><thead><tr><th>書籍</th><th>サービス</th><th>所持巻数</th><th>ステータス</th><th>ID</th><th>日時</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <div class="table-wrap"><table class="book-table"><thead><tr><th></th><th>書籍</th><th>サービス</th><th>所持巻数</th><th>ステータス</th><th>日時</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div>
   </section>
 </main>
+<div class="row-action-popover" id="row-action-popover" hidden>
+  <button data-popover-action="edit-status">ステータス編集</button>
+  <button class="danger-text" data-popover-action="delete">削除</button>
+</div>
 <dialog class="modal" id="excluded-dialog">
   <div class="modal-heading">
     <div><h2>除外リスト</h2><p class="muted" id="excluded-summary"></p></div>
@@ -43,6 +48,7 @@
     </div>
     <div class="status-editor">
       <div><span class="field-caption">自動ステータス</span><div class="badges" id="auto-statuses"></div></div>
+      <div><span class="field-caption">既存ステータス</span><div class="status-picker" id="status-picker"></div></div>
       <label class="filter-field">手動ステータス<textarea id="manual-statuses" rows="6" placeholder="1行に1つずつ入力"></textarea></label>
       <p class="muted">手動ステータスは収集で上書きされず、一覧・検索・CSVに反映されます。</p>
     </div>
