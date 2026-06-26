@@ -7,6 +7,10 @@ const displayDate = (value) => value ? new Date(value).toLocaleString("ja-JP") :
 const serviceKey = (record) => record.sourceId || record.source || "";
 
 function option(value, label = value) { return `<option value="${esc(value)}">${esc(label)}</option>`; }
+function closeActionMenu() {
+  document.querySelector("#action-menu").hidden = true;
+  document.querySelector("#menu-toggle").setAttribute("aria-expanded", "false");
+}
 
 async function load() {
   const stored = await chrome.storage.local.get(["books", "excludedBooks"]);
@@ -62,7 +66,9 @@ function render() {
   });
   filtered = sortRecords(filtered, sort);
   document.querySelector("#summary").textContent = `${EbookCore.totalItemCount(filtered)}冊（${filtered.length} / ${records.length}シリーズ）`;
-  document.querySelector("#delete-service").disabled = !source;
+  const deleteServiceButton = document.querySelector("#delete-service");
+  deleteServiceButton.disabled = source === "";
+  deleteServiceButton.setAttribute("aria-disabled", String(source === ""));
   document.querySelector("#rows").innerHTML = filtered.map(rowHtml).join("") || '<tr><td colspan="7" class="empty">条件に一致する書籍がありません</td></tr>';
   renderExclusions();
 }
@@ -93,6 +99,7 @@ function addExclusions(target, items) {
 function renderExclusions() {
   const exclusions = Object.values(excludedBooks).sort((a,b) => (a.source || "").localeCompare(b.source || "","ja") || (a.title || "").localeCompare(b.title || "","ja"));
   document.querySelector("#excluded-summary").textContent = exclusions.length ? `${exclusions.length} 件を今後の収集から除外します` : "除外中のシリーズはありません";
+  document.querySelector("#show-exclusions").textContent = exclusions.length ? `除外リスト（${exclusions.length}）` : "除外リスト";
   document.querySelector("#excluded-rows").innerHTML = exclusions.map(exclusionHtml).join("") || '<tr><td colspan="5" class="empty">除外リストは空です</td></tr>';
 }
 
@@ -116,6 +123,21 @@ async function saveState(nextBooks, nextExcludedBooks = excludedBooks) {
 for (const selector of ["#query", "#source", "#sort"]) document.querySelector(selector).addEventListener(selector === "#query" ? "input" : "change", render);
 document.querySelector("#options").onclick = () => chrome.runtime.openOptionsPage();
 document.querySelector("#guide").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("guide.html") });
+document.querySelector("#menu-toggle").onclick = () => {
+  const menu = document.querySelector("#action-menu");
+  const isOpen = !menu.hidden;
+  menu.hidden = isOpen;
+  document.querySelector("#menu-toggle").setAttribute("aria-expanded", String(!isOpen));
+};
+document.addEventListener("click", (event) => {
+  if (!event.target.closest(".menu-shell")) closeActionMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeActionMenu();
+});
+for (const selector of ["#guide", "#options", "#clear", "#show-exclusions"]) document.querySelector(selector).addEventListener("click", closeActionMenu);
+document.querySelector("#show-exclusions").onclick = () => document.querySelector("#excluded-dialog").showModal();
+document.querySelector("#close-exclusions").onclick = () => document.querySelector("#excluded-dialog").close();
 document.querySelector("#back-to-top").onclick = () => scrollTo({ top: 0, behavior: "smooth" });
 addEventListener("scroll", () => {
   document.querySelector("#back-to-top").classList.toggle("visible", scrollY > 420);

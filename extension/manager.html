@@ -1,5 +1,19 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="common.css"></head><body>
-<header class="topbar"><div><p class="eyebrow">Library</p><h1>収集済み書籍</h1></div><div class="actions"><button id="csv">CSV出力</button><button class="secondary" id="guide">取り込みガイド</button><button class="secondary" id="options">解析ルール</button><button class="danger" id="clear">全件削除</button></div></header>
+<header class="topbar">
+  <div><p class="eyebrow">Library</p><h1>収集済み書籍</h1></div>
+  <div class="topbar-actions">
+    <button id="csv">CSV出力</button>
+    <div class="menu-shell">
+      <button class="secondary menu-toggle" id="menu-toggle" aria-expanded="false" aria-haspopup="true">操作</button>
+      <div class="action-menu" id="action-menu" hidden>
+        <button class="menu-item" id="guide">取り込みガイド</button>
+        <button class="menu-item" id="options">解析ルール</button>
+        <button class="menu-item" id="show-exclusions">除外リスト</button>
+        <button class="menu-item danger-text" id="clear">全件削除</button>
+      </div>
+    </div>
+  </div>
+</header>
 <main class="container manager-container">
   <aside class="manager-sidebar card">
     <div class="summary-card"><span class="muted">表示中</span><strong id="summary"></strong></div>
@@ -12,11 +26,14 @@
   </aside>
   <section class="manager-results">
     <div class="table-wrap"><table class="book-table"><thead><tr><th>書籍</th><th>サービス</th><th>所持巻数</th><th>ステータス</th><th>ID</th><th>日時</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div>
-    <section class="excluded-panel card">
-      <div class="excluded-heading"><div><h2>除外リスト</h2><p class="muted" id="excluded-summary"></p></div></div>
-      <div class="table-wrap excluded-wrap"><table class="book-table excluded-table"><thead><tr><th>書籍</th><th>サービス</th><th>ID</th><th>除外日時</th><th>操作</th></tr></thead><tbody id="excluded-rows"></tbody></table></div>
-    </section>
   </section>
 </main>
+<dialog class="modal" id="excluded-dialog">
+  <div class="modal-heading">
+    <div><h2>除外リスト</h2><p class="muted" id="excluded-summary"></p></div>
+    <button class="secondary" id="close-exclusions">閉じる</button>
+  </div>
+  <div class="table-wrap excluded-wrap"><table class="book-table excluded-table"><thead><tr><th>書籍</th><th>サービス</th><th>ID</th><th>除外日時</th><th>操作</th></tr></thead><tbody id="excluded-rows"></tbody></table></div>
+</dialog>
 <button id="back-to-top" class="back-to-top" aria-label="ページトップへ戻る">↑</button>
 <script src="core.js"></script><script src="manager.js"></script></body></html>
