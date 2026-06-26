@@ -197,6 +197,7 @@
       statuses: options.replaceStatuses && incoming.statusesObserved
         ? unique(incoming.statuses || [])
         : unique([...(previous.statuses || []), ...(incoming.statuses || [])]),
+      manualStatuses: unique([...(previous.manualStatuses || []), ...(incoming.manualStatuses || [])]),
       ownedVolumes: unique([...(previous.ownedVolumes || []), ...(incoming.ownedVolumes || [])]).map(Number).filter(Number.isFinite).sort((a, b) => a - b),
       title: preferIncomingBibliography ? incoming.title : (previous.title || incoming.title),
       authors: incoming.authors || previous.authors,
@@ -238,6 +239,10 @@
     return (records || []).reduce((sum, record) => sum + recordItemCount(record), 0);
   }
 
+  function recordStatuses(record) {
+    return unique([...(record.statuses || []), ...(record.manualStatuses || [])]);
+  }
+
   function createExclusion(record, now = new Date().toISOString()) {
     return {
       key: record.key || "",
@@ -274,6 +279,7 @@
   const csvEscape = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   function csvValue(record, key) {
     if (key === "ownedVolumes") return formatVolumes(record.ownedVolumes);
+    if (key === "statuses") return recordStatuses(record).join("; ");
     if (Array.isArray(record[key])) return record[key].join("; ");
     return record[key] ?? "";
   }
@@ -282,7 +288,7 @@
       .map((row) => row.map(csvEscape).join(",")).join("\r\n");
   }
 
-  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, recordItemCount, totalItemCount, createExclusion, isExcludedRecord, toCsv, csvColumns, toAsciiNumber };
+  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, recordItemCount, totalItemCount, recordStatuses, createExclusion, isExcludedRecord, toCsv, csvColumns, toAsciiNumber };
   root.EbookCore = api;
   if (typeof module !== "undefined") module.exports = api;
 })(globalThis);

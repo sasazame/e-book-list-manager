@@ -35,5 +35,19 @@
   </div>
   <div class="table-wrap excluded-wrap"><table class="book-table excluded-table"><thead><tr><th>書籍</th><th>サービス</th><th>ID</th><th>除外日時</th><th>操作</th></tr></thead><tbody id="excluded-rows"></tbody></table></div>
 </dialog>
+<dialog class="modal status-modal" id="status-dialog">
+  <form method="dialog" id="status-form">
+    <div class="modal-heading">
+      <div><h2>ステータス編集</h2><p class="muted" id="status-target"></p></div>
+      <button class="secondary" value="cancel">閉じる</button>
+    </div>
+    <div class="status-editor">
+      <div><span class="field-caption">自動ステータス</span><div class="badges" id="auto-statuses"></div></div>
+      <label class="filter-field">手動ステータス<textarea id="manual-statuses" rows="6" placeholder="1行に1つずつ入力"></textarea></label>
+      <p class="muted">手動ステータスは収集で上書きされず、一覧・検索・CSVに反映されます。</p>
+    </div>
+    <div class="modal-actions"><button class="secondary" value="cancel">キャンセル</button><button id="save-statuses" value="default">保存</button></div>
+  </form>
+</dialog>
 <button id="back-to-top" class="back-to-top" aria-label="ページトップへ戻る">↑</button>
 <script src="core.js"></script><script src="manager.js"></script></body></html>

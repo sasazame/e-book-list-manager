@@ -1,10 +1,12 @@
 let books = {};
 let excludedBooks = {};
 let records = [];
+let editingStatusKey = "";
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateValue = (value) => value ? new Date(value).getTime() || 0 : 0;
 const displayDate = (value) => value ? new Date(value).toLocaleString("ja-JP") : "—";
 const serviceKey = (record) => record.sourceId || record.source || "";
+const recordStatuses = (record) => EbookCore.recordStatuses ? EbookCore.recordStatuses(record) : [...new Set([...(record.statuses || []), ...(record.manualStatuses || [])])];
 
 function option(value, label = value) { return `<option value="${esc(value)}">${esc(label)}</option>`; }
 function closeActionMenu() {
@@ -26,7 +28,7 @@ function refreshFilters() {
   const selectedSource = sourceSelect.value;
   const selectedStatuses = new Set(Array.from(document.querySelectorAll("#status-filters input:checked")).map((input) => input.value));
   const sources = [...new Map(records.map((r) => [serviceKey(r), r.source]).filter(([value]) => value)).entries()].sort((a,b) => a[1].localeCompare(b[1],"ja"));
-  const statuses = [...new Set(records.flatMap((r) => r.statuses || []))].sort((a,b) => a.localeCompare(b,"ja"));
+  const statuses = [...new Set(records.flatMap(recordStatuses))].sort((a,b) => a.localeCompare(b,"ja"));
   sourceSelect.innerHTML = option("", "すべて") + sources.map(([value, label]) => option(value, label)).join("");
   sourceSelect.value = sources.some(([value]) => value === selectedSource) ? selectedSource : "";
   document.querySelector("#status-filters").innerHTML = ['<label class="status-check"><input type="checkbox" value="__none__">ステータスなし</label>', ...statuses.map((s) => `<label class="status-check"><input type="checkbox" value="${esc(s)}">${esc(s)}</label>`)].join("");
@@ -57,7 +59,7 @@ function render() {
   const selectedStatuses = Array.from(document.querySelectorAll("#status-filters input:checked")).map((input) => input.value);
   const sort = document.querySelector("#sort").value;
   let filtered = records.filter((r) => {
-    const statuses = r.statuses || [];
+    const statuses = recordStatuses(r);
     const wantsNoStatus = selectedStatuses.includes("__none__");
     const requested = selectedStatuses.filter((item) => item !== "__none__");
     const statusMatch = !selectedStatuses.length || (wantsNoStatus && statuses.length === 0) || requested.every((item) => statuses.includes(item));
@@ -78,9 +80,22 @@ function rowHtml(r) {
   const shownId = r.seriesId || ids[0] || "—";
   const hiddenCount = r.seriesId ? ids.length : Math.max(0, ids.length - 1);
   const allIds = [r.seriesId, ...ids].filter(Boolean).join("\n");
-  const badges = (r.statuses || []).map((status) => `<span class="badge">${esc(status)}</span>`).join("") || '<span class="muted">—</span>';
+  const badges = recordStatuses(r).map((status) => `<span class="badge">${esc(status)}</span>`).join("") || '<span class="muted">—</span>';
   const cover = r.coverUrl ? `<img class="cover" src="${esc(r.coverUrl)}" alt="" loading="lazy">` : '<div class="cover placeholder"></div>';
-  return `<tr><td><div class="book-cell">${cover}<div class="book-meta"><a class="book-title" href="${esc(r.detailUrl)}" target="_blank" rel="noreferrer">${esc(r.title)}</a><span class="book-authors">${esc(r.authors || "著者情報なし")}</span></div></div></td><td><span class="source-label">${esc(r.source)}</span></td><td class="volumes">${esc(EbookCore.formatVolumes(r.ownedVolumes) || "—")}</td><td><div class="badges">${badges}</div></td><td><div class="id-cell" title="${esc(allIds)}"><code>${esc(shownId)}</code>${hiddenCount ? `<span class="id-more">+${hiddenCount}</span>` : ""}</div></td><td class="dates"><span>追加 ${esc(displayDate(r.firstSeenAt || r.lastSeenAt))}</span><span>確認 ${esc(displayDate(r.lastSeenAt))}</span></td><td><button class="danger row-delete" data-delete-key="${esc(r.key)}">削除</button></td></tr>`;
+  return `<tr><td><div class="book-cell">${cover}<div class="book-meta"><a class="book-title" href="${esc(r.detailUrl)}" target="_blank" rel="noreferrer">${esc(r.title)}</a><span class="book-authors">${esc(r.authors || "著者情報なし")}</span></div></div></td><td><span class="source-label">${esc(r.source)}</span></td><td class="volumes">${esc(EbookCore.formatVolumes(r.ownedVolumes) || "—")}</td><td><div class="badges">${badges}</div></td><td><div class="id-cell" title="${esc(allIds)}"><code>${esc(shownId)}</code>${hiddenCount ? `<span class="id-more">+${hiddenCount}</span>` : ""}</div></td><td class="dates"><span>追加 ${esc(displayDate(r.firstSeenAt || r.lastSeenAt))}</span><span>確認 ${esc(displayDate(r.lastSeenAt))}</span></td><td><details class="row-action-menu"><summary>操作</summary><div class="row-action-list"><button data-edit-status-key="${esc(r.key)}">ステータス編集</button><button class="danger-text" data-delete-key="${esc(r.key)}">削除</button></div></details></td></tr>`;
+}
+
+function parseManualStatuses(value) {
+  return [...new Set(String(value || "").split(/\r?\n|;/).map((item) => item.trim()).filter(Boolean))];
+}
+
+function openStatusEditor(record) {
+  editingStatusKey = record.key;
+  document.querySelector("#status-target").textContent = `${record.source} / ${record.title}`;
+  const automaticStatuses = record.statuses || [];
+  document.querySelector("#auto-statuses").innerHTML = automaticStatuses.map((status) => `<span class="badge">${esc(status)}</span>`).join("") || '<span class="muted">—</span>';
+  document.querySelector("#manual-statuses").value = (record.manualStatuses || []).join("\n");
+  document.querySelector("#status-dialog").showModal();
 }
 
 function exclusionStorageKey(exclusion) {
@@ -147,6 +162,13 @@ document.querySelector("#csv").onclick = () => {
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ebook-list-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 document.querySelector("#rows").onclick = async (event) => {
+  const editButton = event.target.closest("[data-edit-status-key]");
+  if (editButton) {
+    const record = books[editButton.dataset.editStatusKey];
+    if (record) openStatusEditor(record);
+    editButton.closest("details")?.removeAttribute("open");
+    return;
+  }
   const button = event.target.closest("[data-delete-key]");
   if (!button) return;
   const record = books[button.dataset.deleteKey];
@@ -156,6 +178,14 @@ document.querySelector("#rows").onclick = async (event) => {
   delete nextBooks[record.key];
   await saveState(nextBooks, shouldExclude ? addExclusions(excludedBooks, [record]) : excludedBooks);
 };
+document.querySelector("#status-form").addEventListener("submit", async (event) => {
+  if (event.submitter?.id !== "save-statuses") return;
+  event.preventDefault();
+  const record = books[editingStatusKey];
+  if (!record) return;
+  await saveState({ ...books, [record.key]: { ...record, manualStatuses: parseManualStatuses(document.querySelector("#manual-statuses").value) } });
+  document.querySelector("#status-dialog").close();
+});
 document.querySelector("#delete-service").onclick = async () => {
   const selectedSource = document.querySelector("#source").value;
   if (!selectedSource) return;
