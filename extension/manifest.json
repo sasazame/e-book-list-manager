@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "E-book List Exporter",
+  "name": "E-book List Manager",
   "version": "0.6.6",
-  "description": "Kindle、DMM Books、ebookjapanのライブラリを収集し、CSVに出力します。",
+  "description": "Kindle、DMM Books、ebookjapanのライブラリを収集・管理し、CSVに出力します。",
   "permissions": ["storage"],
   "host_permissions": ["<all_urls>"],
   "background": { "service_worker": "background.js" },
   "action": {
-    "default_title": "E-book List Exporter",
+    "default_title": "E-book List Manager",
     "default_popup": "popup.html"
   },
   "options_page": "options.html",

@@ -1,6 +1,6 @@
-# E-book List Exporter
+# E-book List Manager
 
-Kindle、DMM Books、ebookjapan のライブラリページから書籍情報を自動収集し、CSVに出力する Chrome 拡張です。データは外部へ送信せず、Chrome拡張のローカルストレージに保存します。
+Kindle、DMM Books、ebookjapan のライブラリページから書籍情報を自動収集・管理し、CSVに出力する Chrome 拡張です。データは外部へ送信せず、Chrome拡張のローカルストレージに保存します。
 
 ## 対応ページ
 
@@ -15,11 +15,12 @@ Kindle、DMM Books、ebookjapan のライブラリページから書籍情報を
 
 ## インストール
 
-1. `chrome://extensions` を開く
-2. 「デベロッパー モード」を有効化
-3. 「パッケージ化されていない拡張機能を読み込む」を押す
-4. このリポジトリの `extension` フォルダを選ぶ
-5. Kindle / DMM Books / ebookjapan にログインして対応ページを開く
+1. GitHub Releases から最新の `e-book-list-manager.zip` をダウンロードする
+2. ZIPを任意の場所へ展開する
+3. `chrome://extensions` を開く
+4. 「デベロッパー モード」を有効化する
+5. 「パッケージ化されていない拡張機能を読み込む」を押し、展開した `extension` フォルダを選ぶ
+6. Kindle / DMM Books / ebookjapan にログインして対応ページを開く
 
 ツールバーの拡張アイコンから冊数とシリーズ数の確認、再解析、一覧表示ができます。「一覧 / CSV」画面で検索、サービス絞り込み、UTF-8 BOM付きCSV出力、全件削除ができます。
 
@@ -119,7 +120,13 @@ npm run check
 npm run package
 ```
 
-テストは `tests/fixtures` の人工HTMLを読み、各サイトの抽出結果とCSVを検証します。実サービスから保存したHTMLには購入履歴やセッション情報が含まれる可能性があるため、リポジトリには追加しません。`npm run package` はJDKの `jar` コマンドを使い、`dist/e-book-list-exporter.zip` を生成します。
+テストは `tests/fixtures` の人工HTMLを読み、各サイトの抽出結果とCSVを検証します。実サービスから保存したHTMLには購入履歴やセッション情報が含まれる可能性があるため、リポジトリには追加しません。`npm run package` はJDKの `jar` コマンドを使い、`dist/e-book-list-manager.zip` を生成します。
+
+## コントリビューション方針
+
+このリポジトリでは外部からのPull Requestは受け付けていません。セキュリティ上、ブラウザ拡張の権限・DOM解析・取り込み対象URLに関する変更はメンテナ側で管理します。
+
+欲しい機能や不具合報告はIssueで受け付けます。自分の用途に合わせて実装したい場合は、このリポジトリをForkして利用してください。
 
 ## 権限について
 
