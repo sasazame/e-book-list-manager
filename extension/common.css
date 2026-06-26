@@ -28,6 +28,14 @@ input[type="search"] { width: 100%; min-width: 0; padding: 10px 12px; border: 1p
 .filter-field { display: grid; gap: 7px; color: #475467; font-size: 12px; font-weight: 700; }
 .filter-field select { width: 100%; padding: 10px 34px 10px 12px; border: 1px solid #c8d0dc; border-radius: 10px; background: white; color: #172033; }
 .manager-results { min-width: 0; }
+.excluded-panel { margin-top: 18px; }
+.excluded-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.excluded-heading h2 { margin: 0 0 3px; font-size: 18px; }
+.excluded-heading p { margin: 0; }
+.excluded-wrap { box-shadow: none; }
+.excluded-table { min-width: 760px; }
+.service-delete { width: 100%; }
+.row-delete { white-space: nowrap; }
 .toolbar { display: grid; gap: 14px; padding: 16px 18px; }
 .toolbar-main, .filters { display: flex; align-items: end; gap: 14px; flex-wrap: wrap; }
 .toolbar-main { justify-content: space-between; }

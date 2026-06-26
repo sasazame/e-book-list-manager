@@ -392,6 +392,16 @@ test("冊数カウントは所持巻数を優先し、巻数不明時は書籍ID
   ]), 5);
 });
 
+test("除外リストはキー・シリーズID・書籍IDで収集対象を判定する", () => {
+  const record = { key: "dmm-books:series:s1", source: "DMM Books", sourceId: "dmm-books", seriesId: "s1", externalIds: ["c1"], title: "除外サンプル" };
+  const exclusion = core.createExclusion(record, "2026-06-26T00:00:00.000Z");
+  assert.equal(exclusion.excludedAt, "2026-06-26T00:00:00.000Z");
+  assert.equal(core.isExcludedRecord(record, { [exclusion.key]: exclusion }), true);
+  assert.equal(core.isExcludedRecord({ ...record, key: "dmm-books:series:renamed" }, { [exclusion.key]: exclusion }), true);
+  assert.equal(core.isExcludedRecord({ ...record, key: "dmm-books:series:other", seriesId: "", externalIds: ["c1"] }, { [exclusion.key]: exclusion }), true);
+  assert.equal(core.isExcludedRecord({ ...record, key: "kindle:series:s1", sourceId: "kindle" }, { [exclusion.key]: exclusion }), false);
+});
+
 test("URLワイルドカードはパスとクエリを判定する", () => {
   assert.equal(core.matchesUrl("https://book.dmm.com/shelf/?tab=library&page=3", ["https://book.dmm.com/shelf/*"]), true);
   assert.equal(core.matchesUrl("https://book.dmm.com/product/1/", ["https://book.dmm.com/shelf/*"]), false);

@@ -96,12 +96,18 @@ chrome.runtime.onStartup.addListener(async () => {
   await updateBadge(books);
 });
 
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local" || !changes.books) return;
+  updateBadge(changes.books.newValue || {});
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "UPSERT_BOOKS") {
     (async () => {
-      const { books = {} } = await chrome.storage.local.get("books");
-      for (const record of message.records || []) books[record.key] = EbookCore.mergeRecords(books[record.key], record, { replaceStatuses: true });
-      await chrome.storage.local.set({ books, lastImport: { count: message.records.length, ruleId: message.ruleId, at: new Date().toISOString(), pageUrl: sender.tab?.url || "" } });
+      const { books = {}, excludedBooks = {} } = await chrome.storage.local.get(["books", "excludedBooks"]);
+      const incomingRecords = (message.records || []).filter((record) => !EbookCore.isExcludedRecord(record, excludedBooks));
+      for (const record of incomingRecords) books[record.key] = EbookCore.mergeRecords(books[record.key], record, { replaceStatuses: true });
+      await chrome.storage.local.set({ books, lastImport: { count: incomingRecords.length, ruleId: message.ruleId, at: new Date().toISOString(), pageUrl: sender.tab?.url || "" } });
       const records = Object.values(books);
       await updateBadge(books);
       sendResponse({ ok: true, total: EbookCore.totalItemCount(records), seriesTotal: records.length });

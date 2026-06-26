@@ -238,6 +238,30 @@
     return (records || []).reduce((sum, record) => sum + recordItemCount(record), 0);
   }
 
+  function createExclusion(record, now = new Date().toISOString()) {
+    return {
+      key: record.key || "",
+      source: record.source || "",
+      sourceId: record.sourceId || "",
+      seriesId: record.seriesId || "",
+      externalIds: unique(record.externalIds || []),
+      title: record.title || "",
+      authors: record.authors || "",
+      coverUrl: record.coverUrl || "",
+      excludedAt: now
+    };
+  }
+
+  function isExcludedRecord(record, exclusions = {}) {
+    const recordIds = new Set(record.externalIds || []);
+    return Object.values(exclusions || {}).some((exclusion) => {
+      if (exclusion.key && exclusion.key === record.key) return true;
+      if (exclusion.sourceId && exclusion.seriesId && exclusion.sourceId === record.sourceId && exclusion.seriesId === record.seriesId) return true;
+      if (exclusion.sourceId && exclusion.sourceId === record.sourceId && (exclusion.externalIds || []).some((id) => recordIds.has(id))) return true;
+      return false;
+    });
+  }
+
   const csvColumns = [
     { key: "source", label: "サービス" }, { key: "seriesId", label: "シリーズID" },
     { key: "externalIds", label: "書籍ID一覧" }, { key: "title", label: "タイトル" },
@@ -258,7 +282,7 @@
       .map((row) => row.map(csvEscape).join(",")).join("\r\n");
   }
 
-  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, recordItemCount, totalItemCount, toCsv, csvColumns, toAsciiNumber };
+  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, recordItemCount, totalItemCount, createExclusion, isExcludedRecord, toCsv, csvColumns, toAsciiNumber };
   root.EbookCore = api;
   if (typeof module !== "undefined") module.exports = api;
 })(globalThis);
