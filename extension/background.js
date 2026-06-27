@@ -137,7 +137,10 @@ chrome.runtime.onInstalled.addListener(async () => {
       const existing = rules.find((rule) => rule.id === defaultRule.id);
       if (!existing) rules.push(defaultRule);
       else if (current.rulesVersion < 7 && defaultRule.id === "ebookjapan") Object.assign(existing, defaultRule);
-      else mergeDefaultRuleUpdates(existing, defaultRule);
+      else {
+        mergeDefaultRuleUpdates(existing, defaultRule);
+        if (current.rulesVersion < 13 && /^dmm-books/.test(defaultRule.id) && defaultRule.importGuide) existing.importGuide = defaultRule.importGuide;
+      }
     }
     const update = { rules, rulesVersion: globalThis.EBOOK_RULES_VERSION };
     if (current.rulesVersion < 9) update.books = reindexBooks(current.books || {}, rules);

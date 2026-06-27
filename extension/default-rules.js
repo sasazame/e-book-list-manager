@@ -1,5 +1,5 @@
 (function (root) {
-  root.EBOOK_RULES_VERSION = 12;
+  root.EBOOK_RULES_VERSION = 13;
   root.EBOOK_DEFAULT_RULES = [
     {
       "id": "kindle",
@@ -122,13 +122,14 @@
       ],
       "importGuide": {
         "url": "https://book.dmm.com/shelf/?tab=library&page=1",
-        "summary": "DMM Booksの購入済み本棚からシリーズとステータスを取り込みます。",
+        "summary": "DMM Booksの購入済み本棚からシリーズ、著者、ステータスを取り込みます。",
         "steps": [
           "DMMへログインした状態でURLを開く",
           "本棚の各ページを順番に表示する",
-          "必要に応じてシリーズの購入済み全巻一覧を開き、所持巻数を補完する"
+          "収集済み書籍を開き、サービスをDMM Booksに絞り込む",
+          "所持巻数を補完する場合は『所持巻数を取得する』を押す"
         ],
-        "note": "本棚ページだけでは所持巻数を取得できません。管理一覧のDMMタイトルリンクから購入済み全巻一覧を開けます。"
+        "note": "本棚ページだけでは所持巻数を取得できません。管理一覧の一括取得はDMMへログイン済みのブラウザセッションで購入済み巻APIを順番に取得します。"
       },
       "parser": "dom",
       "bookSelector": "[data-testid='purchasable-library-book']",
@@ -228,13 +229,13 @@
       ],
       "importGuide": {
         "url": "https://book.dmm.com/product/<シリーズID>/volumes/?tab=purchased",
-        "summary": "シリーズの購入済み全巻一覧から所持巻数を補完します。",
+        "summary": "DMM Booksのシリーズ別購入済み全巻一覧から、所持巻数と書籍IDを補完します。",
         "steps": [
-          "DMM本棚から対象シリーズを開く",
-          "全巻一覧で『購入済み』タブを表示する",
-          "購入済み巻の一覧が表示されるまで待つ"
+          "通常は収集済み書籍でサービスをDMM Booksに絞り込み、『所持巻数を取得する』を押す",
+          "個別に確認する場合は一覧画面のDMMタイトルリンクから購入済み全巻一覧を開く",
+          "ページを直接開いた場合は『購入済み』タブの巻一覧が表示されるまで待つ"
         ],
-        "note": "一覧画面のタイトルリンクもこの購入済み全巻一覧へ移動します。未購入巻は所持巻数に含めません。"
+        "note": "一括取得ではページDOMではなくDMM BooksのBFF APIを使います。ページを直接開いた場合も自動解析しますが、未購入巻は所持巻数に含めません。"
       },
       "parser": "dom",
       "bookSelector": "[data-testid='purchased-volume-book']",
