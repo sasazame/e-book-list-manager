@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "E-book List Manager",
-  "version": "0.6.6",
+  "version": "0.7.0",
   "description": "Kindle、DMM Books、ebookjapanのライブラリを収集・管理し、CSVに出力します。",
   "permissions": ["storage"],
   "host_permissions": ["<all_urls>"],
