@@ -124,6 +124,8 @@ npm run package
 
 テストは `tests/fixtures` の人工HTMLを読み、各サイトの抽出結果とCSVを検証します。DMMの購入済み全巻一覧 fixture もトラッキングID、アカウント情報、実タイトルを含まない匿名HTMLです。実サービスから保存したHTMLには購入履歴やセッション情報が含まれる可能性があるため、リポジトリには追加しません。`npm run package` はJDKの `jar` コマンドを使い、`dist/e-book-list-manager.zip` を生成します。
 
+リリース時のバージョン更新、ZIP生成、GitHub Releases更新手順は [RELEASE.md](RELEASE.md) を参照してください。
+
 ## コントリビューション方針
 
 このリポジトリでは外部からのPull Requestは受け付けていません。セキュリティ上、ブラウザ拡張の権限・DOM解析・取り込み対象URLに関する変更はメンテナ側で管理します。
