@@ -93,6 +93,101 @@
     return Array.from(byId.values());
   }
 
+  function decodeHtml(value) {
+    return String(value ?? "").replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  }
+
+  function attrValue(tag, name) {
+    const match = new RegExp(`${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(tag || "");
+    return match ? decodeHtml(match[1]) : "";
+  }
+
+  function dmmContentIdFromItem(item, productHref, imageSrc) {
+    const downloadHref = /<a\b[^>]*href=["']([^"']*product_id=[^"']*)["'][^>]*>/i.exec(item)?.[1] || "";
+    const fromDownload = /[?&]product_id=([^&]+)/.exec(decodeHtml(downloadHref))?.[1] || "";
+    if (fromDownload) return decodeHtml(fromDownload);
+    const fromReview = /[?&]content_id=([^&"']+)/.exec(decodeHtml(item))?.[1] || "";
+    if (fromReview) return decodeHtml(fromReview);
+    const productParts = /\/product\/[^/]+\/([^/?#]+)\/?/.exec(productHref);
+    if (productParts && !["latest", "volumes"].includes(productParts[1])) return productParts[1];
+    const imageParts = /\/e-book\/([^/]+)\//.exec(imageSrc);
+    return imageParts?.[1] || "";
+  }
+
+  function parseDmmPurchasedVolumesHtml(html, rule, baseUrl) {
+    const records = [];
+    const itemRegex = /<div\b[^>]*data-testid=["']purchased-volume-book["'][^>]*>([\s\S]*?)(?=<div\b[^>]*data-testid=["'](?:purchased-volume-book|book-item-list-item)["']|<\/main>|<\/body>|$)/gi;
+    for (const itemMatch of String(html || "").matchAll(itemRegex)) {
+      const item = itemMatch[1];
+      const productAnchor = /<a\b[^>]*href=["']([^"']*\/product\/[^"']*)["'][^>]*>/i.exec(item);
+      const imageTag = /<img\b[^>]*data-testid=["']book-image["'][^>]*>/i.exec(item)?.[0] || "";
+      const productHref = decodeHtml(productAnchor?.[1] || "");
+      const imageSrc = attrValue(imageTag, "src");
+      const externalId = dmmContentIdFromItem(item, productHref, imageSrc);
+      const seriesId = (/\/product\/([^/]+)\//.exec(productHref)?.[1] || "");
+      const title = attrValue(imageTag, "alt");
+      if (!seriesId || !title) continue;
+      let detailUrl = "";
+      try { detailUrl = new URL(`/product/${seriesId}/volumes/?tab=purchased`, baseUrl).href; } catch { detailUrl = productHref; }
+      records.push({
+        externalId,
+        seriesId,
+        title: cleanupTitle(title, rule.titleCleanup || []),
+        originalTitle: title,
+        detailUrl,
+        coverUrl: imageSrc
+      });
+    }
+    return records;
+  }
+
+  function dmmVolumeSeriesTitle(title, volumeNumber) {
+    const text = clean(title);
+    const number = toAsciiNumber(volumeNumber);
+    if (!number) return text;
+    const escaped = String(number).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const fullWidth = String(number).replace(/[0-9]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
+    const variants = unique([escaped, fullWidth]).join("|");
+    return clean(text
+      .replace(new RegExp(`\\s*[（(]\\s*(?:${variants})\\s*[）)]\\s*$`), "")
+      .replace(new RegExp(`\\s*(?:第\\s*)?(?:${variants})\\s*(?:巻|冊)\\s*$`), "")
+      .replace(new RegExp(`\\s+(?:${variants})\\s*$`), "")
+      .replace(new RegExp(`(^|[^0-9０-９])(?:${variants})\\s*$`), "$1"));
+  }
+
+  function dmmImageUrl(imageUrls = {}) {
+    return imageUrls.pt || imageUrls.ps || imageUrls.pl || "";
+  }
+
+  function parseDmmPurchasedVolumesJson(data, rule, baseUrl, fallbackSeriesId = "") {
+    const payload = typeof data === "string" ? JSON.parse(data) : (data || {});
+    const records = [];
+    for (const item of payload.volume_books || []) {
+      if (!item?.purchased) continue;
+      const contentId = clean(item.content_id);
+      const volumeNumber = toAsciiNumber(item.volume_number);
+      const productPath = clean(item.product_path || "");
+      const productUrl = clean(item.product_url || "");
+      const seriesId = clean((/\/product\/([^/]+)\//.exec(productPath || productUrl)?.[1]) || fallbackSeriesId);
+      const title = cleanupTitle(item.title || "", rule.titleCleanup || []);
+      if (!seriesId || !title) continue;
+      let detailUrl = "";
+      try { detailUrl = new URL(`/product/${seriesId}/volumes/?tab=purchased`, baseUrl).href; } catch { detailUrl = productUrl; }
+      records.push({
+        externalId: contentId,
+        seriesId,
+        title: dmmVolumeSeriesTitle(title, volumeNumber) || title,
+        originalTitle: item.title || title,
+        ownedVolumes: volumeNumber ? [volumeNumber] : [],
+        detailUrl,
+        coverUrl: dmmImageUrl(item.image_urls)
+      });
+    }
+    return records;
+  }
+
   function toAsciiNumber(value) {
     const romanNumber = romanToNumber(value);
     if (romanNumber) return romanNumber;
@@ -230,14 +325,41 @@
     return ranges.join(", ");
   }
 
+  function countableExternalIds(record) {
+    const ids = unique(record.externalIds || []).map(String).filter(Boolean);
+    if ((record.sourceId || "") !== "dmm-books") return ids;
+    const seriesId = String(record.seriesId || "");
+    return ids.filter((id) => id !== seriesId && id !== "latest" && id !== "volumes");
+  }
+
+  function hasUnknownOwnedVolumes(record) {
+    const volumeCount = unique((record.ownedVolumes || []).map(Number).filter((n) => Number.isInteger(n) && n > 0)).length;
+    return (record.sourceId || "") === "dmm-books" && volumeCount === 0;
+  }
+
   function recordItemCount(record) {
     const volumeCount = unique((record.ownedVolumes || []).map(Number).filter((n) => Number.isInteger(n) && n > 0)).length;
-    const idCount = unique(record.externalIds || []).length;
+    if (hasUnknownOwnedVolumes(record)) return 1;
+    const idCount = countableExternalIds(record).length;
     return Math.max(volumeCount, idCount, 1);
   }
 
   function totalItemCount(records) {
     return (records || []).reduce((sum, record) => sum + recordItemCount(record), 0);
+  }
+
+  function knownItemCount(records) {
+    return (records || []).reduce((sum, record) => sum + (hasUnknownOwnedVolumes(record) ? 0 : recordItemCount(record)), 0);
+  }
+
+  function unknownOwnedVolumeSeriesCount(records) {
+    return (records || []).filter(hasUnknownOwnedVolumes).length;
+  }
+
+  function itemCountSummary(records) {
+    const known = knownItemCount(records);
+    const unknown = unknownOwnedVolumeSeriesCount(records);
+    return unknown ? `${known}冊 + 不明${unknown}シリーズ` : `${known}冊`;
   }
 
   function recordStatuses(record) {
@@ -279,7 +401,7 @@
   ];
   const csvEscape = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
   function csvValue(record, key) {
-    if (key === "ownedVolumes") return formatVolumes(record.ownedVolumes);
+    if (key === "ownedVolumes") return hasUnknownOwnedVolumes(record) ? "不明" : formatVolumes(record.ownedVolumes);
     if (key === "statuses") return recordStatuses(record).join("; ");
     if (key === "favorite") return record.favorite ? "TRUE" : "";
     if (Array.isArray(record[key])) return record[key].join("; ");
@@ -290,7 +412,7 @@
       .map((row) => row.map(csvEscape).join(",")).join("\r\n");
   }
 
-  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, recordItemCount, totalItemCount, recordStatuses, createExclusion, isExcludedRecord, toCsv, csvColumns, toAsciiNumber };
+  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, parseDmmPurchasedVolumesHtml, parseDmmPurchasedVolumesJson, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, countableExternalIds, hasUnknownOwnedVolumes, recordItemCount, totalItemCount, knownItemCount, unknownOwnedVolumeSeriesCount, itemCountSummary, recordStatuses, createExclusion, isExcludedRecord, toCsv, csvColumns, toAsciiNumber };
   root.EbookCore = api;
   if (typeof module !== "undefined") module.exports = api;
 })(globalThis);

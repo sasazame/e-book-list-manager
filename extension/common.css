@@ -41,7 +41,7 @@ input[type="search"] { width: 100%; min-width: 0; padding: 10px 12px; border: 1p
 .manager-results { min-width: 0; }
 .excluded-wrap { box-shadow: none; }
 .excluded-table { min-width: 760px; }
-.service-delete { width: 100%; }
+.service-delete, .service-action { width: 100%; }
 .row-delete { white-space: nowrap; }
 .icon-menu-button { width: 32px; height: 32px; padding: 0; display: inline-grid; place-items: center; border-radius: 8px; background: #eef2f7; color: #344054; box-shadow: none; font-size: 20px; line-height: 1; }
 .icon-menu-button:hover { background: #e4e9f2; filter: none; }
@@ -59,6 +59,11 @@ input[type="search"] { width: 100%; min-width: 0; padding: 10px 12px; border: 1p
 .modal-heading h2 { margin: 0 0 3px; font-size: 18px; }
 .modal-heading p { margin: 0; }
 .status-modal { width: min(620px, calc(100vw - 32px)); }
+.progress-modal { width: min(560px, calc(100vw - 32px)); }
+.progress-body { display: flex; align-items: center; gap: 16px; min-height: 96px; }
+.progress-body p { margin: 4px 0 0; }
+.spinner { width: 34px; height: 34px; flex: 0 0 auto; border: 4px solid #dbeafe; border-top-color: #2563eb; border-radius: 50%; animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .status-editor { display: grid; gap: 14px; }
 .status-editor textarea { min-height: 130px; padding: 10px 12px; border-radius: 10px; font-family: inherit; }
 .status-picker { display: flex; flex-wrap: wrap; gap: 7px; }

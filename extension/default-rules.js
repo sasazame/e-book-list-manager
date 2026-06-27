@@ -1,5 +1,5 @@
 (function (root) {
-  root.EBOOK_RULES_VERSION = 11;
+  root.EBOOK_RULES_VERSION = 12;
   root.EBOOK_DEFAULT_RULES = [
     {
       "id": "kindle",
@@ -126,9 +126,9 @@
         "steps": [
           "DMMへログインした状態でURLを開く",
           "本棚の各ページを順番に表示する",
-          "必要に応じて個別ページを開き、所持巻数を補完する"
+          "必要に応じてシリーズの購入済み全巻一覧を開き、所持巻数を補完する"
         ],
-        "note": "本棚ページだけでは所持巻数を取得できません。個別ページを開くと購入済み巻が追加されます。"
+        "note": "本棚ページだけでは所持巻数を取得できません。管理一覧のDMMタイトルリンクから購入済み全巻一覧を開けます。"
       },
       "parser": "dom",
       "bookSelector": "[data-testid='purchasable-library-book']",
@@ -180,10 +180,12 @@
         },
         {
           "key": "detailUrl",
-          "label": "詳細URL",
+          "label": "購入済み全巻一覧URL",
           "selector": "a[href*='/product/']",
           "value": "attribute",
           "attribute": "href",
+          "match": ".*/product/([^/]+)/.*",
+          "replace": "/product/$1/volumes/?tab=purchased",
           "resolveUrl": true
         },
         {
@@ -217,7 +219,7 @@
     },
     {
       "id": "dmm-books-product",
-      "name": "DMM Books 個別ページ",
+      "name": "DMM Books 購入済み全巻一覧",
       "collectionId": "dmm-books",
       "collectionName": "DMM Books",
       "enabled": true,
@@ -225,14 +227,14 @@
         "https://book.dmm.com/product/*"
       ],
       "importGuide": {
-        "url": "https://book.dmm.com/product/<シリーズID>/<コンテンツID>/",
-        "summary": "シリーズ個別ページから購入済みの巻数を補完します。",
+        "url": "https://book.dmm.com/product/<シリーズID>/volumes/?tab=purchased",
+        "summary": "シリーズの購入済み全巻一覧から所持巻数を補完します。",
         "steps": [
           "DMM本棚から対象シリーズを開く",
-          "シリーズ欄に購入済み巻が表示されるまで待つ",
-          "シリーズ欄が複数ページの場合は各ページを表示する"
+          "全巻一覧で『購入済み』タブを表示する",
+          "購入済み巻の一覧が表示されるまで待つ"
         ],
-        "note": "未購入巻は所持巻数に含めません。"
+        "note": "一覧画面のタイトルリンクもこの購入済み全巻一覧へ移動します。未購入巻は所持巻数に含めません。"
       },
       "parser": "dom",
       "bookSelector": "[data-testid='purchased-volume-book']",
@@ -240,10 +242,10 @@
         {
           "key": "externalId",
           "label": "DMMコンテンツID",
-          "selector": "a[href*='/product/']",
+          "selector": "a[href*='product_id=']",
           "value": "attribute",
           "attribute": "href",
-          "match": ".*/product/[^/]+/([^/]+)/.*",
+          "match": ".*[?&]product_id=([^&]+).*",
           "replace": "$1"
         },
         {
@@ -264,10 +266,12 @@
         },
         {
           "key": "detailUrl",
-          "label": "各巻URL",
+          "label": "購入済み全巻一覧URL",
           "selector": "a[href*='/product/']",
           "value": "attribute",
           "attribute": "href",
+          "match": ".*/product/([^/]+)/.*",
+          "replace": "/product/$1/volumes/?tab=purchased",
           "resolveUrl": true
         },
         {
@@ -299,7 +303,7 @@
         }
       ],
       "seriesGrouping": {
-        "description": "購入済みカードだけを対象に、シリーズIDで本棚データへ巻数を追加します",
+        "description": "購入済みタブのカードだけを対象に、シリーズIDで本棚データへ巻数を追加します",
         "keyField": "seriesId",
         "volumePatterns": [
           {
@@ -390,10 +394,12 @@
         },
         {
           "key": "detailUrl",
-          "label": "購入書籍URL",
+          "label": "購入済み全巻一覧URL",
           "selector": "a[href*='/product/']",
           "value": "attribute",
           "attribute": "href",
+          "match": ".*/product/([^/]+)/.*",
+          "replace": "/product/$1/volumes/?tab=purchased",
           "resolveUrl": true
         },
         {

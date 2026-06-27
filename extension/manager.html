@@ -21,6 +21,7 @@
     <label class="favorite-filter"><input type="checkbox" id="favorite-only">お気に入りのみ</label>
     <label class="filter-field">サービス<select id="source"><option value="">すべて</option></select></label>
     <button class="danger service-delete" id="delete-service" disabled>選択サービスを削除</button>
+    <button class="secondary service-action" id="fetch-dmm-volumes" hidden>所持巻数を取得する</button>
     <label class="filter-field">並び順<select id="sort"><option value="added-asc" selected>本棚追加順（昇順）</option><option value="added-desc">本棚追加順（降順）</option><option value="updated-desc">最終確認が新しい順</option><option value="title-asc">タイトル昇順</option><option value="title-desc">タイトル降順</option><option value="volumes-desc">所持巻数が多い順</option><option value="volumes-asc">所持巻数が少ない順</option><option value="source-asc">サービス順</option></select></label>
     <div class="status-filter-group"><span>ステータス</span><div id="status-filters" class="status-filter-tags"></div></div>
     <div class="status" id="status"></div>
@@ -54,6 +55,16 @@
     </div>
     <div class="modal-actions"><button class="secondary" value="cancel">キャンセル</button><button id="save-statuses" value="default">保存</button></div>
   </form>
+</dialog>
+<dialog class="modal progress-modal" id="dmm-fetch-dialog">
+  <div class="modal-heading">
+    <div><h2>DMM所持巻数の取得</h2><p class="muted">時間がかかります。しばらくお待ちください。</p></div>
+  </div>
+  <div class="progress-body">
+    <div class="spinner" aria-hidden="true"></div>
+    <div><strong id="dmm-fetch-progress">準備中</strong><p class="muted" id="dmm-fetch-detail"></p></div>
+  </div>
+  <div class="modal-actions"><button class="secondary" id="cancel-dmm-fetch">キャンセル</button><button id="close-dmm-fetch" hidden>閉じる</button></div>
 </dialog>
 <button id="back-to-top" class="back-to-top" aria-label="ページトップへ戻る">↑</button>
 <script src="core.js"></script><script src="manager.js"></script></body></html>

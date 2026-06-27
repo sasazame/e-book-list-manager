@@ -1,7 +1,7 @@
 async function refresh() {
   const { books = {}, lastImport } = await chrome.storage.local.get(["books", "lastImport"]);
   const records = Object.values(books);
-  document.querySelector("#count").textContent = `${EbookCore.totalItemCount(records)}冊（${records.length}シリーズ）`;
+  document.querySelector("#count").textContent = `${EbookCore.itemCountSummary(records)}（${records.length}シリーズ）`;
   if (lastImport) document.querySelector("#last").textContent = `直近: ${lastImport.count}件 / ${new Date(lastImport.at).toLocaleString("ja-JP")}`;
 }
 document.querySelector("#manager").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("manager.html") });

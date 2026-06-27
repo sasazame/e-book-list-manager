@@ -47,8 +47,65 @@ function reindexBooks(books = {}, rules = []) {
 
 async function updateBadge(books) {
   const records = Object.values(books || {});
-  await chrome.action.setBadgeText({ text: String(EbookCore.totalItemCount(records)) });
+  await chrome.action.setBadgeText({ text: String(EbookCore.knownItemCount(records)) });
   await chrome.action.setBadgeBackgroundColor({ color: "#2563eb" });
+}
+
+function dmmVolumesUrl(seriesId) {
+  return `https://book.dmm.com/product/${encodeURIComponent(seriesId)}/volumes/?tab=purchased`;
+}
+
+function dmmBffContentsUrl(seriesId, page = 1, perPage = 100) {
+  const params = new URLSearchParams({
+    shop_name: "general",
+    series_id: seriesId,
+    page: String(page),
+    per_page: String(perPage),
+    last_read_position: "0",
+    order: "asc",
+    purchase_status: "purchased",
+    format_webp: "1"
+  });
+  return `https://book.dmm.com/ajax/bff/contents/?${params}`;
+}
+
+function dmmProductRule(rules = globalThis.EBOOK_DEFAULT_RULES) {
+  return rules.find((rule) => rule.id === "dmm-books-product");
+}
+
+async function fetchDmmVolumesJson(seriesId, rule, pageUrl) {
+  const perPage = 100;
+  const records = [];
+  let totalCount = null;
+  for (let page = 1; page <= 20; page += 1) {
+    const apiUrl = dmmBffContentsUrl(seriesId, page, perPage);
+    const response = await fetch(apiUrl, {
+      credentials: "include",
+      cache: "no-store",
+      headers: { "Accept": "application/json" }
+    });
+    if (!response.ok) throw new Error(`API HTTP ${response.status}`);
+    const data = await response.json();
+    records.push(...EbookCore.parseDmmPurchasedVolumesJson(data, rule, pageUrl, seriesId));
+    totalCount = Number(data?.pager?.total_count ?? totalCount);
+    const loaded = page * Number(data?.pager?.per_page || perPage);
+    if (!totalCount || loaded >= totalCount) break;
+  }
+  return records;
+}
+
+async function upsertFetchedDmmVolumes(seriesId, records, rule, pageUrl) {
+  if (!records.length) return 0;
+  const { books = {}, excludedBooks = {} } = await chrome.storage.local.get(["books", "excludedBooks"]);
+  const normalized = EbookCore.aggregateRecords(records.map((item) => EbookCore.normalizeRecord(item, rule, pageUrl)))
+    .filter((record) => !EbookCore.isExcludedRecord(record, excludedBooks));
+  for (const record of normalized) books[record.key] = EbookCore.mergeRecords(books[record.key], record, { replaceStatuses: true });
+  await chrome.storage.local.set({
+    books,
+    lastImport: { count: normalized.length, ruleId: rule.id, at: new Date().toISOString(), pageUrl, manualFetch: true, seriesId }
+  });
+  await updateBadge(books);
+  return normalized.length;
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -111,6 +168,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const records = Object.values(books);
       await updateBadge(books);
       sendResponse({ ok: true, total: EbookCore.totalItemCount(records), seriesTotal: records.length });
+    })();
+    return true;
+  }
+  if (message.type === "FETCH_DMM_VOLUMES") {
+    (async () => {
+      const seriesId = String(message.seriesId || "");
+      if (!seriesId) {
+        sendResponse({ ok: false, error: "seriesId is required" });
+        return;
+      }
+      const { rules: savedRules } = await chrome.storage.local.get("rules");
+      const rule = dmmProductRule(savedRules || globalThis.EBOOK_DEFAULT_RULES);
+      if (!rule?.enabled) {
+        sendResponse({ ok: false, error: "DMM購入済み全巻一覧ルールが無効です" });
+        return;
+      }
+      const pageUrl = dmmVolumesUrl(seriesId);
+      try {
+        const records = await fetchDmmVolumesJson(seriesId, rule, pageUrl);
+        const count = await upsertFetchedDmmVolumes(seriesId, records, rule, pageUrl);
+        sendResponse({ ok: count > 0, count, parsed: records.length, pageUrl, source: "api", error: records.length ? "" : "購入済み巻を解析できませんでした" });
+      } catch (error) {
+        sendResponse({ ok: false, error: error?.message || "DMM API fetch failed", pageUrl, source: "api" });
+      }
     })();
     return true;
   }
