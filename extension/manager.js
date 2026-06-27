@@ -249,6 +249,39 @@ async function saveState(nextBooks, nextExcludedBooks = excludedBooks) {
   render();
 }
 
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("CSVを読み込めませんでした"));
+    reader.readAsText(file);
+  });
+}
+
+function mergeImportedRecords(importedRecords) {
+  const nextBooks = { ...books };
+  for (const record of importedRecords) nextBooks[record.key] = EbookCore.mergeRecords(nextBooks[record.key], record);
+  return nextBooks;
+}
+
+async function importCsvFile(file) {
+  if (!file) return;
+  try {
+    const importedRecords = EbookCore.fromCsv(await readFileAsText(file), { rules: globalThis.EBOOK_DEFAULT_RULES || [] });
+    if (!importedRecords.length) {
+      document.querySelector("#status").textContent = "取り込めるCSVデータがありません。";
+      return;
+    }
+    const beforeCount = Object.keys(books).length;
+    const mergedBooks = mergeImportedRecords(importedRecords);
+    const added = Object.keys(mergedBooks).length - beforeCount;
+    await saveState(mergedBooks);
+    document.querySelector("#status").textContent = `CSVから${importedRecords.length}件を取り込みました（新規${added}件 / 更新${importedRecords.length - added}件）。`;
+  } catch (error) {
+    document.querySelector("#status").textContent = `CSV取込に失敗しました: ${error.message || error}`;
+  }
+}
+
 for (const selector of ["#query", "#source", "#sort", "#favorite-only"]) document.querySelector(selector).addEventListener(selector === "#query" ? "input" : "change", render);
 document.querySelector("#options").onclick = () => chrome.runtime.openOptionsPage();
 document.querySelector("#guide").onclick = () => chrome.tabs.create({ url: chrome.runtime.getURL("guide.html") });
@@ -268,7 +301,7 @@ document.addEventListener("keydown", (event) => {
     closeRowActionMenu();
   }
 });
-for (const selector of ["#csv", "#guide", "#options", "#clear", "#show-exclusions"]) document.querySelector(selector).addEventListener("click", closeActionMenu);
+for (const selector of ["#csv", "#csv-import", "#guide", "#options", "#clear", "#show-exclusions"]) document.querySelector(selector).addEventListener("click", closeActionMenu);
 document.querySelector("#show-exclusions").onclick = () => document.querySelector("#excluded-dialog").showModal();
 document.querySelector("#close-exclusions").onclick = () => document.querySelector("#excluded-dialog").close();
 document.querySelector("#fetch-dmm-volumes").onclick = fetchDmmVolumes;
@@ -282,6 +315,11 @@ addEventListener("scroll", () => {
 document.querySelector("#csv").onclick = () => {
   const blob = new Blob([EbookCore.toCsv(records)], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `ebook-list-${new Date().toISOString().slice(0,10)}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+document.querySelector("#csv-import").onclick = () => document.querySelector("#csv-file").click();
+document.querySelector("#csv-file").onchange = async (event) => {
+  await importCsvFile(event.target.files?.[0]);
+  event.target.value = "";
 };
 document.querySelector("#rows").onclick = async (event) => {
   const favoriteButton = event.target.closest("[data-favorite-key]");

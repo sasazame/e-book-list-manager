@@ -6,11 +6,13 @@
       <button class="secondary menu-toggle" id="menu-toggle" aria-expanded="false" aria-haspopup="true">MENU</button>
       <div class="action-menu" id="action-menu" hidden>
         <button class="menu-item" id="csv">CSV出力</button>
+        <button class="menu-item" id="csv-import">CSV取込</button>
         <button class="menu-item" id="guide">取り込みガイド</button>
         <button class="menu-item" id="options">解析ルール</button>
         <button class="menu-item" id="show-exclusions">除外リスト</button>
         <button class="menu-item danger-text" id="clear">全件削除</button>
       </div>
+      <input type="file" id="csv-file" accept=".csv,text/csv" hidden>
     </div>
   </div>
 </header>
@@ -67,4 +69,4 @@
   <div class="modal-actions"><button class="secondary" id="cancel-dmm-fetch">キャンセル</button><button id="close-dmm-fetch" hidden>閉じる</button></div>
 </dialog>
 <button id="back-to-top" class="back-to-top" aria-label="ページトップへ戻る">↑</button>
-<script src="core.js"></script><script src="manager.js"></script></body></html>
+<script src="default-rules.js"></script><script src="core.js"></script><script src="manager.js"></script></body></html>

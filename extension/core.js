@@ -412,7 +412,103 @@
       .map((row) => row.map(csvEscape).join(",")).join("\r\n");
   }
 
-  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, parseDmmPurchasedVolumesHtml, parseDmmPurchasedVolumesJson, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, countableExternalIds, hasUnknownOwnedVolumes, recordItemCount, totalItemCount, knownItemCount, unknownOwnedVolumeSeriesCount, itemCountSummary, recordStatuses, createExclusion, isExcludedRecord, toCsv, csvColumns, toAsciiNumber };
+  function parseCsvRows(text) {
+    const value = String(text || "").replace(/^\uFEFF/, "");
+    const rows = [];
+    let row = [], field = "", quoted = false;
+    for (let index = 0; index < value.length; index += 1) {
+      const char = value[index];
+      if (quoted) {
+        if (char === '"' && value[index + 1] === '"') { field += '"'; index += 1; }
+        else if (char === '"') quoted = false;
+        else field += char;
+        continue;
+      }
+      if (char === '"') quoted = true;
+      else if (char === ",") { row.push(field); field = ""; }
+      else if (char === "\n") {
+        row.push(field); rows.push(row); row = []; field = "";
+      } else if (char !== "\r") field += char;
+    }
+    row.push(field);
+    if (row.length > 1 || row[0] !== "" || rows.length === 0) rows.push(row);
+    return rows;
+  }
+
+  function splitCsvList(value) {
+    return unique(String(value || "").split(";").map(clean));
+  }
+
+  function parseCsvVolumes(value) {
+    const text = clean(value);
+    if (!text || text === "不明") return [];
+    const volumes = [];
+    for (const part of text.split(",")) {
+      const range = part.trim().match(/^([0-9０-９]+)\s*-\s*([0-9０-９]+)$/);
+      if (range) {
+        const start = toAsciiNumber(range[1]), end = toAsciiNumber(range[2]);
+        if (start && end && end >= start && end - start <= 2000) for (let number = start; number <= end; number += 1) volumes.push(number);
+        continue;
+      }
+      const number = toAsciiNumber(part);
+      if (number) volumes.push(number);
+    }
+    return unique(volumes).map(Number).sort((a, b) => a - b);
+  }
+
+  function sourceIdMapFromRules(rules = []) {
+    const map = new Map();
+    for (const rule of rules || []) {
+      const id = rule.collectionId || rule.id;
+      const name = rule.collectionName || rule.name;
+      if (id && name && !map.has(name)) map.set(name, id);
+    }
+    return map;
+  }
+
+  function recordFromCsvRow(row, sourceIdsByName = new Map(), now = new Date().toISOString()) {
+    const source = clean(row.source);
+    const sourceId = clean(row.sourceId) || sourceIdsByName.get(source) || "";
+    const title = clean(row.title);
+    const seriesId = clean(row.seriesId);
+    const keyBase = seriesId || title.toLocaleLowerCase("ja");
+    if (!source || !title || !keyBase) return null;
+    return {
+      key: `${sourceId || source}:series:${keyBase}`,
+      source,
+      sourceId,
+      seriesId,
+      externalIds: splitCsvList(row.externalIds),
+      title,
+      authors: row.authors || "",
+      category: row.category || "",
+      statuses: [],
+      manualStatuses: splitCsvList(row.statuses),
+      ownedVolumes: parseCsvVolumes(row.ownedVolumes),
+      detailUrl: row.detailUrl || "",
+      coverUrl: row.coverUrl || "",
+      favorite: /^true$/i.test(clean(row.favorite)),
+      pageUrl: row.pageUrl || "",
+      firstSeenAt: row.firstSeenAt || row.lastSeenAt || now,
+      lastSeenAt: row.lastSeenAt || now,
+      bibliographicComplete: true
+    };
+  }
+
+  function fromCsv(text, options = {}) {
+    const rows = parseCsvRows(text).filter((row) => row.some((field) => clean(field)));
+    if (!rows.length) return [];
+    const headers = rows[0].map(clean);
+    const keyByLabel = new Map(csvColumns.map((column) => [column.label, column.key]));
+    const sourceIdsByName = options.sourceIdsByName instanceof Map ? options.sourceIdsByName : sourceIdMapFromRules(options.rules);
+    return rows.slice(1).map((row) => {
+      const values = {};
+      headers.forEach((label, index) => { values[keyByLabel.get(label) || label] = row[index] ?? ""; });
+      return recordFromCsvRow(values, sourceIdsByName, options.now);
+    }).filter(Boolean);
+  }
+
+  const api = { clean, matchesUrl, parseDom, parseKindleJson, parseDocument, parseDmmPurchasedVolumesHtml, parseDmmPurchasedVolumesJson, deriveSeries, normalizeRecord, mergeRecords, aggregateRecords, formatVolumes, countableExternalIds, hasUnknownOwnedVolumes, recordItemCount, totalItemCount, knownItemCount, unknownOwnedVolumeSeriesCount, itemCountSummary, recordStatuses, createExclusion, isExcludedRecord, toCsv, fromCsv, parseCsvRows, csvColumns, toAsciiNumber };
   root.EbookCore = api;
   if (typeof module !== "undefined") module.exports = api;
 })(globalThis);

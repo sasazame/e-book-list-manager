@@ -472,6 +472,51 @@ test("CSVはExcel向けBOM、固定列、引用符エスケープを持つ", () 
   assert.match(csv, /"1-3, 5, 7-9"/);
 });
 
+test("CSV取込はエクスポート形式からレコードを復元する", () => {
+  const csv = core.toCsv([{
+    source: "DMM Books",
+    sourceId: "dmm-books",
+    seriesId: "series-1",
+    externalIds: ["book-1", "book-2"],
+    title: '題名, "特別"',
+    authors: "著者A",
+    category: "マンガ",
+    statuses: ["完結"],
+    manualStatuses: ["注目"],
+    ownedVolumes: [1, 2, 3, 5],
+    detailUrl: "https://example.test/detail",
+    coverUrl: "https://example.test/cover.jpg",
+    favorite: true,
+    pageUrl: "https://example.test/page",
+    firstSeenAt: "2026-01-01T00:00:00.000Z",
+    lastSeenAt: "2026-01-02T00:00:00.000Z"
+  }]);
+  const imported = core.fromCsv(csv, { rules, now: "2026-01-03T00:00:00.000Z" });
+  assert.equal(imported.length, 1);
+  assert.equal(imported[0].key, "dmm-books:series:series-1");
+  assert.equal(imported[0].sourceId, "dmm-books");
+  assert.equal(imported[0].title, '題名, "特別"');
+  assert.deepEqual(imported[0].externalIds, ["book-1", "book-2"]);
+  assert.deepEqual(imported[0].manualStatuses, ["完結", "注目"]);
+  assert.deepEqual(imported[0].ownedVolumes, [1, 2, 3, 5]);
+  assert.equal(imported[0].favorite, true);
+  assert.equal(imported[0].firstSeenAt, "2026-01-01T00:00:00.000Z");
+});
+
+test("CSV取込は巻数範囲と不明表示を扱う", () => {
+  const csv = "\uFEFF\"サービス\",\"シリーズID\",\"書籍ID一覧\",\"タイトル\",\"著者\",\"カテゴリ\",\"ステータス\",\"所持巻数\",\"詳細URL\",\"表紙URL\",\"お気に入り\",\"収集元URL\",\"本棚追加日時\",\"最終確認日時\"\r\n"
+    + "\"DMM Books\",\"s1\",\"id1; id2\",\"巻数不明\",\"\",\"\",\"\",\"不明\",\"\",\"\",\"\",\"\",\"\",\"\"\r\n"
+    + "\"Kindle ライブラリ\",\"\",\"k1\",\"範囲サンプル\",\"\",\"\",\"読了; 注目\",\"1-3, 5, ７-８\",\"\",\"\",\"TRUE\",\"\",\"\",\"\"";
+  const imported = core.fromCsv(csv, { rules, now: "2026-01-03T00:00:00.000Z" });
+  assert.equal(imported[0].sourceId, "dmm-books");
+  assert.deepEqual(imported[0].ownedVolumes, []);
+  assert.equal(core.hasUnknownOwnedVolumes(imported[0]), true);
+  assert.equal(imported[1].sourceId, "kindle");
+  assert.deepEqual(imported[1].ownedVolumes, [1, 2, 3, 5, 7, 8]);
+  assert.deepEqual(imported[1].manualStatuses, ["読了", "注目"]);
+  assert.equal(imported[1].favorite, true);
+});
+
 test("巻数表示は連番を範囲にまとめる", () => {
   assert.equal(core.formatVolumes([15, 1, 3, 2, 7, 9, 10, 11, 12, 13, 14]), "1-3, 7, 9-15");
 });
